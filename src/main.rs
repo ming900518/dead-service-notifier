@@ -1,10 +1,11 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 use std::{fmt::Display, fs::File, io::BufReader, path::Path, process::exit, time::Duration};
 
+use chrono::Local;
 use clap::Parser;
 use futures::future::join_all;
-use notify_rust::{Hint, Notification, Timeout};
-use reqwest::{Client, Method, Request, Url};
+use notify_rust::{Notification, Timeout};
+use reqwest::{ClientBuilder, Method, Request, Url};
 use serde::Deserialize;
 use tokio::{task, time::sleep};
 
@@ -78,12 +79,12 @@ async fn check_if_still_alive(api: &Api, seconds: u64) {
             },
             url,
         );
-        let Ok(response) = Client::new().execute(request).await else {
-            notification(&api.name, &format!("主機死掉了！！！！（{}）", api.url));
+        let Ok(response) = ClientBuilder::new().timeout(Duration::from_secs(3)).build().unwrap().execute(request).await else {
+            notification(&api.name, &format!("主機死掉了！！！！\n{}", api.url));
             continue;
         };
         let Ok(_) = response.bytes().await else {
-            notification(&api.name, &format!("服務死掉了！！！！（{}）", api.url));
+            notification(&api.name, &format!("服務死掉了！！！！\n{}", api.url));
             continue;
         };
     }
@@ -91,6 +92,9 @@ async fn check_if_still_alive(api: &Api, seconds: u64) {
 
 #[cfg(target_os = "!macos")]
 fn notification(name: &str, body: &str) {
+    use notify_rust::Hint;
+
+    println!("{} - {name} {body}", Local::now());
     Notification::new()
         .summary(name)
         .body(body)
@@ -103,6 +107,7 @@ fn notification(name: &str, body: &str) {
 
 #[cfg(target_os = "macos")]
 fn notification(name: &str, body: &str) {
+    println!("{} - {name} {body}", Local::now());
     Notification::new()
         .summary(name)
         .body(body)
