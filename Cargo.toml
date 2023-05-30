@@ -1,7 +1,7 @@
 [package]
 name = "dead-service-notifier"
 description = "Notify user when web service is not reachable."
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Ming Chang <mail@mingchang.tw>"]
 categories = ["cli"]
@@ -19,3 +19,14 @@ tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros"] }
 futures = "0.3.28"
 chrono = "0.4.25"
 winrt-notification = "0.5.1"
+
+[package.metadata.bundle]
+name = "Dead Service Notifier"
+identifier = "tw.mingchang.deadservicenotifier"
+version = "0.2.0"
+category = "Developer Tool"
+short_description = "Notify user when web service is not reachable."
+long_description = """
+Notify user when web service is not reachable.
+"""
+osx_url_schemes = ["tw.mingchang.deadservicenotifier"]

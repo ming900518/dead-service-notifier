@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 use std::{fmt::Display, fs::File, io::BufReader, path::Path, process::exit, time::Duration};
 
