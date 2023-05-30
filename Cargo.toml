@@ -1,0 +1,19 @@
+[package]
+name = "dead-service-notifier"
+description = "Notify user when web service is not reachable."
+version = "0.1.0"
+edition = "2021"
+authors = ["Ming Chang <mail@mingchang.tw>"]
+categories = ["cli"]
+keywords = ["cli"]
+repository = "https://github.com/ming900518/dead-service-notifier"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4.3.0", features = ["derive"] }
+notify-rust = "4.8.0"
+reqwest = { version = "0.11.18", features = ["native-tls-vendored"] }
+serde = { version = "1.0.163", features = ["derive"] }
+serde_json = "1.0.96"
+tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros"] }
+futures = "0.3.28"
