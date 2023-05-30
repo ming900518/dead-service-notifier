@@ -116,3 +116,18 @@ fn notification(name: &str, body: &str) {
         .show()
         .unwrap();
 }
+
+#[cfg(target_os = "windows")]
+fn notification(name: &str, body: &str) {
+    use winrt_notification::{Toast, Sound, Duration};
+
+    println!("{} - {name} {body}", Local::now());
+    Toast::new(Toast::POWERSHELL_APP_ID)
+        .title("Dead Service Notifier")
+        .text1(name)
+        .text2(body)
+        .sound(Some(Sound::SMS))
+        .duration(Duration::Short)
+        .show()
+        .unwrap();
+}
