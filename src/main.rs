@@ -2,7 +2,6 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 use std::{fmt::Display, fs::File, io::BufReader, path::Path, process::exit, time::Duration};
 
-use cacao::appkit::{window::Window, AppDelegate};
 use clap::Parser;
 use futures::future::join_all;
 use reqwest::{ClientBuilder, Method, Request, Url};
@@ -33,7 +32,6 @@ enum HttpMethod {
 }
 
 #[cfg(target_os = "linux")]
-#[cfg(target_os = "windows")]
 #[tokio::main]
 async fn main() {
     use rfd::AsyncFileDialog;
@@ -72,8 +70,8 @@ fn main() {
     use cacao::{
         appkit::{
             menu::{Menu, MenuItem},
-            window::{WindowConfig, WindowDelegate},
-            App,
+            window::{Window, WindowConfig, WindowDelegate},
+            App, AppDelegate,
         },
         filesystem::FileSelectPanel,
         notification_center::Dispatcher,
