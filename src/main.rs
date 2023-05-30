@@ -2,10 +2,9 @@
 #![warn(clippy::all, clippy::pedantic, clippy::nursery, clippy::cargo)]
 use std::{fmt::Display, fs::File, io::BufReader, path::Path, process::exit, time::Duration};
 
-use chrono::Local;
+use cacao::appkit::{window::Window, AppDelegate};
 use clap::Parser;
 use futures::future::join_all;
-use notify_rust::{Notification, Timeout};
 use reqwest::{ClientBuilder, Method, Request, Url};
 use serde::Deserialize;
 use tokio::{task, time::sleep};
@@ -33,12 +32,26 @@ enum HttpMethod {
     Post,
 }
 
+#[cfg(target_os = "linux")]
+#[cfg(target_os = "windows")]
 #[tokio::main]
 async fn main() {
+    use rfd::AsyncFileDialog;
     let args = Args::parse();
-    let file_path = args
-        .file_path
-        .unwrap_or_else(|| String::from("./api_list.json"));
+    let file_path = if let Some(file_path) = args.file_path {
+        file_path
+    } else {
+        AsyncFileDialog::new()
+            .add_filter("JSON", &["json"])
+            .set_directory("/")
+            .pick_file()
+            .await
+            .unwrap()
+            .path()
+            .to_str()
+            .unwrap()
+            .to_string()
+    };
     let seconds = args
         .seconds
         .map_or(5, |value| if value < 5 { 5 } else { value });
@@ -52,6 +65,95 @@ async fn main() {
         })
         .collect::<Vec<_>>();
     join_all(tasks).await;
+}
+
+#[cfg(target_os = "macos")]
+fn main() {
+    use cacao::{
+        appkit::{
+            menu::{Menu, MenuItem},
+            window::{WindowConfig, WindowDelegate},
+            App,
+        },
+        filesystem::FileSelectPanel,
+        notification_center::Dispatcher,
+    };
+    struct ThisApp {
+        window: Window<FileSelect>,
+    }
+
+    struct FileSelect {
+        panel: FileSelectPanel,
+    }
+
+    impl AppDelegate for ThisApp {
+        fn did_finish_launching(&self) {}
+        fn should_terminate_after_last_window_closed(&self) -> bool {
+            false
+        }
+    }
+
+    enum Message {
+        Selected,
+    }
+
+    impl Dispatcher for ThisApp {
+        type Message = Message;
+        fn on_ui_message(&self, message: Self::Message) {
+            if matches!(message, Message::Selected) {
+                self.window.close();
+            }
+        }
+    }
+
+    impl WindowDelegate for FileSelect {
+        const NAME: &'static str = "jsonSelect";
+        fn did_load(&mut self, window: Window) {
+            window.show();
+            self.panel.set_can_choose_files(true);
+            self.panel.set_can_choose_directories(false);
+            self.panel.set_resolves_aliases(true);
+            self.panel.set_allows_multiple_selection(false);
+            self.panel.begin_sheet(&window, |event| {
+                if event.first().is_some() {
+                    let pathbuf = event.first().unwrap().pathbuf();
+                    std::thread::spawn(move || {
+                        let new_path = pathbuf.to_str().unwrap();
+                        tokio::runtime::Builder::new_multi_thread()
+                            .enable_all()
+                            .build()
+                            .unwrap()
+                            .block_on(async {
+                                let tasks = load_file(&new_path)
+                                    .into_iter()
+                                    .map(|api| {
+                                        task::spawn(async move {
+                                            check_if_still_alive(&api, 5).await;
+                                        })
+                                    })
+                                    .collect::<Vec<_>>();
+                                join_all(tasks).await;
+                            });
+                    });
+                    App::<ThisApp, Message>::dispatch_main(Message::Selected);
+                }
+            });
+        }
+    }
+    App::set_menu(vec![Menu::new("", vec![MenuItem::Quit])]);
+    App::activate();
+    App::new(
+        "tw.mingchang.deadservicenotifier",
+        ThisApp {
+            window: Window::with(
+                WindowConfig::default(),
+                FileSelect {
+                    panel: FileSelectPanel::default(),
+                },
+            ),
+        },
+    )
+    .run();
 }
 
 fn load_file<T: AsRef<Path> + Display>(file_path: &T) -> Vec<Api> {
@@ -93,9 +195,8 @@ async fn check_if_still_alive(api: &Api, seconds: u64) {
 
 #[cfg(target_os = "linux")]
 fn notification(name: &str, body: &str) {
-    use notify_rust::Hint;
+    use notify_rust::{Hint, Notification, Timeout};
 
-    println!("{} - {name} {body}", Local::now());
     Notification::new()
         .summary(name)
         .body(body)
@@ -108,21 +209,19 @@ fn notification(name: &str, body: &str) {
 
 #[cfg(target_os = "macos")]
 fn notification(name: &str, body: &str) {
-    println!("{} - {name} {body}", Local::now());
-    Notification::new()
-        .summary(name)
-        .body(body)
-        .appname("Dead Service Notifier")
-        .timeout(Timeout::Never)
-        .show()
-        .unwrap();
+    use cacao::user_notifications::{Notification, NotificationAuthOption, NotificationCenter};
+    NotificationCenter::request_authorization(&[
+        NotificationAuthOption::Alert,
+        NotificationAuthOption::Sound,
+        NotificationAuthOption::Badge,
+    ]);
+    NotificationCenter::notify(Notification::new(name, body));
 }
 
 #[cfg(target_os = "windows")]
 fn notification(name: &str, body: &str) {
-    use winrt_notification::{Toast, Sound, Duration};
+    use winrt_notification::{Duration, Sound, Toast};
 
-    println!("{} - {name} {body}", Local::now());
     Toast::new(Toast::POWERSHELL_APP_ID)
         .title("Dead Service Notifier")
         .text1(name)
