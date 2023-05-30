@@ -90,7 +90,7 @@ async fn check_if_still_alive(api: &Api, seconds: u64) {
     }
 }
 
-#[cfg(target_os = "!macos")]
+#[cfg(target_os = "linux")]
 fn notification(name: &str, body: &str) {
     use notify_rust::Hint;
 
