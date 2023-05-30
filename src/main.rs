@@ -3,8 +3,8 @@ use std::{fmt::Display, fs::File, io::BufReader, path::Path, process::exit, time
 
 use clap::Parser;
 use futures::future::join_all;
-use notify_rust::{Notification, Hint, Timeout};
-use reqwest::{Method, Request, Url, Client};
+use notify_rust::{Hint, Notification, Timeout};
+use reqwest::{Client, Method, Request, Url};
 use serde::Deserialize;
 use tokio::{task, time::sleep};
 
@@ -37,13 +37,18 @@ async fn main() {
     let file_path = args
         .file_path
         .unwrap_or_else(|| String::from("./api_list.json"));
-    let seconds = args.seconds.map_or(5, |value| if value < 5 {5} else {value} );
+    let seconds = args
+        .seconds
+        .map_or(5, |value| if value < 5 { 5 } else { value });
 
-    let tasks = load_file(&file_path).into_iter().map(|api| {
-        task::spawn(async move {
-            check_if_still_alive(&api, seconds).await;
+    let tasks = load_file(&file_path)
+        .into_iter()
+        .map(|api| {
+            task::spawn(async move {
+                check_if_still_alive(&api, seconds).await;
+            })
         })
-    }).collect::<Vec<_>>();
+        .collect::<Vec<_>>();
     join_all(tasks).await;
 }
 
@@ -62,7 +67,7 @@ fn load_file<T: AsRef<Path> + Display>(file_path: &T) -> Vec<Api> {
 async fn check_if_still_alive(api: &Api, seconds: u64) {
     loop {
         sleep(Duration::from_secs(seconds)).await;
-        let Ok(url) = Url::parse(&api.url) else { 
+        let Ok(url) = Url::parse(&api.url) else {
             eprintln!("Unable to parse \"{}\" as url.", api.url);
             exit(1);
         };
@@ -84,13 +89,25 @@ async fn check_if_still_alive(api: &Api, seconds: u64) {
     }
 }
 
+#[cfg(target_os = "!macos")]
 fn notification(name: &str, body: &str) {
     Notification::new()
         .summary(name)
         .body(body)
         .appname("Dead Service Notifier")
-        .hint(Hint::Resident(true))                 
-        .timeout(Timeout::Never) 
+        .hint(Hint::Resident(true))
+        .timeout(Timeout::Never)
+        .show()
+        .unwrap();
+}
+
+#[cfg(target_os = "macos")]
+fn notification(name: &str, body: &str) {
+    Notification::new()
+        .summary(name)
+        .body(body)
+        .appname("Dead Service Notifier")
+        .timeout(Timeout::Never)
         .show()
         .unwrap();
 }
