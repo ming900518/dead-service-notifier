@@ -34,6 +34,16 @@ enum HttpMethod {
 #[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() {
+    start().await;
+}
+
+#[cfg(target_os = "windows")]
+#[tokio::main]
+async fn main() {
+    start().await;
+}
+
+async fn start() {
     use rfd::AsyncFileDialog;
     let args = Args::parse();
     let file_path = if let Some(file_path) = args.file_path {
