@@ -1,0 +1,12 @@
+[
+    {
+        "name": "https://google.com",
+        "url": "https://google.com",
+        "method": "Get"
+    },
+    {
+        "name": "192.168.1.1",
+        "url": "http://192.168.1.1/",
+        "method": "Post"
+    }
+]

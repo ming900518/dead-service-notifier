@@ -1,22 +1,23 @@
 [package]
 name = "dead-service-notifier"
 description = "Notify user when web service is not reachable."
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Ming Chang <mail@mingchang.tw>"]
-categories = ["cli"]
-keywords = ["cli"]
+categories = ["management"]
+keywords = ["management"]
 repository = "https://github.com/ming900518/dead-service-notifier"
 license = "MIT"
 
 [dependencies]
-clap = { version = "4.3.0", features = ["derive"] }
 reqwest = { version = "0.11.18", features = ["native-tls-vendored"] }
 serde = { version = "1.0.163", features = ["derive"] }
 serde_json = "1.0.96"
 tokio = { version = "1.28.2", features = ["rt-multi-thread", "macros"] }
 futures = "0.3.28"
-rfd = "0.11.4"
+dioxus = { git = "https://github.com/DioxusLabs/dioxus", branch = "master" }
+dioxus-desktop = { git = "https://github.com/DioxusLabs/dioxus", branch = "master" }
+dioxus-hot-reload = { git = "https://github.com/DioxusLabs/dioxus", branch = "master" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 notify-rust = "4.8.0"
